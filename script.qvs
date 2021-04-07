@@ -99,7 +99,7 @@ set vu_limit='100';
 4. Set the number of history days to get for incremental
 	Max 90 days for audit before it goes into the archive
 */
-set vu_history_days='100';
+set vu_history_days='2';
 
 /*
 5. Which tables of data to extract - usually you want all of them
