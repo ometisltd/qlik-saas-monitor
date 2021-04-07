@@ -117,14 +117,10 @@ Load * Inline [
 ];
 
 /*
-    Events,			Event ID
-    Reloads,		Reload ID
-    AuditsSources,	Audits Source
-    Apps,			App ID
-    Users,			User ID
-    Spaces,			Space ID
+6. Set timezone
 */
 
+set vu_timezone='London';
 
 LIB Connect to '$(vu_rest_connection)';
 ///$tab Maps
@@ -271,18 +267,19 @@ elseif '$(vu_table_name)'='Events' then
 
 	Concatenate([$(vu_table_name)])
 	LOAD
-    	'Current'					AS [Event API Source],
-    	[tenantId_u0]&'~'&[userId]	AS [%TenantUser],
+    	'Current'														AS [Event API Source],
+    	[tenantId_u0]&'~'&[userId]										AS [%TenantUser],
         
-        date(floor([eventTime]))	AS [Event Date],
-        time(frac([eventTime]))		AS [Event Time],
+        date(floor(ConvertToLocalTime([eventTime],'$(vu_timezone)')))	AS [Event Date],
+        time(frac(ConvertToLocalTime([eventTime],'$(vu_timezone)')))	AS [Event Time],
         
-        [id_u0] 					AS [Event ID],
-		[source]					AS [Event Source],
-		[contentType]				AS [Event Content Type],
-		[eventType]					AS [Event Type],
-		[eventId]					AS [Event ID ID],
-		timestamp([eventTime])		AS [Event Timestamp]
+        [id_u0] 														AS [Event ID],
+		[source]														AS [Event Source],
+		[contentType]													AS [Event Content Type],
+		[eventType]														AS [Event Type],
+		[eventId]														AS [Event ID ID],
+		timestamp(ConvertToLocalTime([eventTime],'$(vu_timezone)'))		AS [Event Timestamp],
+		timestamp([eventTime])											AS [Event Timestamp UTC]
 // 		[tenantId_u0] 	AS [Event Tenant ID],
 // 		[userId]		AS [Event User ID]
 // 		[__KEY_data]
@@ -440,21 +437,21 @@ elseif '$(vu_table_name)'='Apps' then
 	[Apps_temp]:
 	LOAD	
 		[_resourcetype],
-		timestamp([createdDate])	AS [App Created Date],
+		timestamp(ConvertToLocalTime([createdDate]),'$(vu_timezone)')				AS [App Created Date],
 // 		[description],
-		[dynamicColor]				AS [App Dymanic Color],
-		[hasSectionAccess]			AS [App Has Section Acccess],
-		[id] 						AS [App ID],
-		timestamp([lastReloadTime])	AS [App Last Reload Time],
-// 		timestamp([modifiedDate])	AS [App Modified Date],
+		[dynamicColor]																AS [App Dymanic Color],
+		[hasSectionAccess]															AS [App Has Section Acccess],
+		[id] 																		AS [App ID],
+		timestamp(ConvertToLocalTime([lastReloadTime],'$(vu_timezone)'))			AS [App Last Reload Time],
+// 		timestamp([modifiedDate])													AS [App Modified Date],
 // 		[name],
-		[originAppId]				AS [App Origin App ID],
-		[owner]						AS [App Owner],
-		[ownerId]					AS [App Owner ID], // Temporarily rename to user ID to link to User data
-		timestamp([publishTime])	AS [App Publish Time],
-		[published]					AS [App Published],
-		[spaceId]					AS [App Space ID],
-		[thumbnail]					AS [App Thumbnail]
+		[originAppId]																AS [App Origin App ID],
+		[owner]																		AS [App Owner],
+		[ownerId]																	AS [App Owner ID], // Temporarily rename to user ID to link to User data
+		timestamp(ConvertToLocalTime([publishTime],'$(vu_timezone)'))				AS [App Publish Time],
+		[published]																	AS [App Published],
+		[spaceId]																	AS [App Space ID],
+		[thumbnail]																	AS [App Thumbnail]
 // 		[encrypted]
 // 	 	[__KEY_resourceAttributes],
 // 	 	[__FK_resourceAttributes] AS [__KEY_data]
@@ -463,27 +460,27 @@ elseif '$(vu_table_name)'='Apps' then
 	
 	left join ([Apps_temp])
 	LOAD
-		[tenantId]&'~'&[resourceId]			AS [%TenantApp],
-       	[tenantId]&'~'&[ownerId_u0]			AS [%TenantUser],
+		[tenantId]&'~'&[resourceId]													AS [%TenantApp],
+       	[tenantId]&'~'&[ownerId_u0]													AS [%TenantUser],
 
-		[name_u0] 							AS [App Name],
-		[description_u0] 					AS [App Description],
+		[name_u0] 																	AS [App Name],
+		[description_u0] 															AS [App Description],
 // 	 	[resourceCustomAttributes],
-// 		timestamp([resourceUpdatedAt])		AS [Resource Updated At],
+// 		timestamp([resourceUpdatedAt])												AS [Resource Updated At],
 		[resourceType],
 // 		[resourceSubType],
-		[resourceId] 						AS [App ID],
-// 		timestamp([resourceCreatedAt])		AS [Resource Created At],
+		[resourceId] 																AS [App ID],
+// 		timestamp([resourceCreatedAt])												AS [Resource Created At],
 		[id_u0],
-		timestamp([createdAt])				AS [App Created At],
-		timestamp([updatedAt])				AS [App Updated At],
-		[creatorId]							AS [App Creator ID],
-		[updaterId]							AS [App Updater ID],
-		[tenantId] 							AS [App Tenant ID],
+		timestamp(ConvertToLocalTime([createdAt],'$(vu_timezone)'))					AS [App Created At],
+		timestamp(ConvertToLocalTime([updatedAt],'$(vu_timezone)'))					AS [App Updated At],
+		[creatorId]																	AS [App Creator ID],
+		[updaterId]																	AS [App Updater ID],
+		[tenantId] 																	AS [App Tenant ID],
 // 		[isFavorited_u0],
 // 		[ownerId_u0],
-// 		timestamp([resourceReloadEndTime])	AS [App Reload End Time],
-		[resourceReloadStatus]				AS [App Reload Status]
+// 		timestamp([resourceReloadEndTime])											AS [App Reload End Time],
+		[resourceReloadStatus]														AS [App Reload Status]
 // 		[__KEY_data],
 // 	 	[__FK_data] AS [__KEY_root]
 	RESIDENT RestConnectorMasterTable
@@ -550,29 +547,29 @@ elseif '$(vu_table_name)'='Reloads' then
 	Concatenate([$(vu_table_name)])
     LOAD
 		// Calculated fields
-		[tenantId] &'~'&[appId] 			AS [%TenantApp],
-        Interval([endTime]-[startTime])		AS [Reload Duration],
+		[tenantId] &'~'&[appId] 										AS [%TenantApp],
+        Interval([endTime]-[startTime])									AS [Reload Duration],
         
-        date(floor([startTime]))			AS [Reload Start Date],
-        time(frac([startTime]))				AS [Reload Start Time],
+        date(floor(ConvertToLocalTime([startTime],'$(vu_timezone)')))	AS [Reload Start Date],
+        time(frac(ConvertToLocalTime([startTime],'$(vu_timezone)')))	AS [Reload Start Time],
         
-        applymap('ReloadType_map',type)		AS [Reload Type Description],
+        applymap('ReloadType_map',type)									AS [Reload Type Description],
 
 		// Simple formats
-		timestamp([creationTime])			AS [Reload Creation Timestamp],
-		timestamp([startTime])				AS [Reload Start Timestamp],
-		timestamp([endTime])				AS [Reload End Timestamp],
-		timestamp([engineTime])				AS [Reload Engine Timestamp],
+		timestamp(ConvertToLocalTime([creationTime],'$(vu_timezone)'))	AS [Reload Creation Timestamp],
+		timestamp(ConvertToLocalTime([startTime],'$(vu_timezone)'))		AS [Reload Start Timestamp],
+		timestamp(ConvertToLocalTime([endTime],'$(vu_timezone)'))		AS [Reload End Timestamp],
+		timestamp(ConvertToLocalTime([engineTime],'$(vu_timezone)'))	AS [Reload Engine Timestamp],
 
 		// Simple renames
-		[id] 								AS [Reload ID],
-// 	 	[appId] 							AS [App ID],
-// 	 	[tenantId] 							AS [Tenant ID],
-		[userId] 							AS [Reload User ID],
-		[type] 								AS [Reload Type],
-		[status] 							AS [Reload Status],
-		[log] 								AS [Reload Log]
-// 		[duration] 							AS [Reload Duration Text],
+		[id] 															AS [Reload ID],
+// 	 	[appId] 														AS [App ID],
+// 	 	[tenantId] 														AS [Tenant ID],
+		[userId] 														AS [Reload User ID],
+		[type] 															AS [Reload Type],
+		[status] 														AS [Reload Status],
+		[log] 															AS [Reload Log]
+// 		[duration] 														AS [Reload Duration Text],
 	RESIDENT RestConnectorMasterTable
 	WHERE NOT IsNull([__KEY_data]);
 
@@ -626,16 +623,16 @@ elseif '$(vu_table_name)'='Users' then
 	
 	Concatenate([$(vu_table_name)])
 	LOAD
-    	[tenantId]&'~'&[id]			AS [%TenantUser],
-		[id]						AS [User ID],
-// 		[tenantId]					AS [Tenant ID],
-		timestamp([created])		AS [User Created],
-		timestamp([lastUpdated])	AS [User Last Updated],
-		[status]					AS [User Status],
-		[name]						AS [User Name],
-		[subject]					AS [User Subject],
-		[email]						AS [User Email],
-		[preferredLocale]			AS [User Preferred Locale]
+    	[tenantId]&'~'&[id]												AS [%TenantUser],
+		[id]															AS [User ID],
+// 		[tenantId]														AS [Tenant ID],
+		timestamp(ConvertToLocalTime([created],'$(vu_timezone)'))		AS [User Created],
+		timestamp(ConvertToLocalTime([lastUpdated],'$(vu_timezone)'))	AS [User Last Updated],
+		[status]														AS [User Status],
+		[name]															AS [User Name],
+		[subject]														AS [User Subject],
+		[email]															AS [User Email],
+		[preferredLocale]												AS [User Preferred Locale]
 // 		[__KEY_data],
 // 		[__FK_data] AS [__KEY_root]
 	RESIDENT RestConnectorMasterTable
@@ -711,16 +708,16 @@ elseif '$(vu_table_name)'='Spaces' then
 
 	Concatenate([$(vu_table_name)])
 	LOAD	
-		[tenantId]&'~'&[id] 	AS [%TenantSpace],
-		[id] 					AS [Space ID],
-		[type] 					AS [Space Type],
-		[ownerId] 				AS [Space Owner ID],
+		[tenantId]&'~'&[id] 										AS [%TenantSpace],
+		[id] 														AS [Space ID],
+		[type] 														AS [Space Type],
+		[ownerId] 													AS [Space Owner ID],
 	// 	[tenantId],
-		[name] 					AS [Space Name],
-		[description] 			AS [Space Description],
-		timestamp([createdAt])	AS [Space Created At],
-		[createdBy]				AS [Space Created By],
-		timestamp([updatedAt])	AS [Space Updated At]
+		[name] 														AS [Space Name],
+		[description] 												AS [Space Description],
+		timestamp(ConvertToLocalTime([createdAt],'$(vu_timezone)'))	AS [Space Created At],
+		[createdBy]													AS [Space Created By],
+		timestamp(ConvertToLocalTime([updatedAt],'$(vu_timezone)'))	AS [Space Updated At]
 	// 	[__KEY_data],
 	// 	[__FK_data] AS [__KEY_root]
 	RESIDENT RestConnectorMasterTable
